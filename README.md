@@ -183,8 +183,8 @@ docker compose down -v     # para, remove containers E volumes (apaga dados do b
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/isacomelli/lastfm-charts.git
-cd lastfm-charts
+git clone https://github.com/isacomelli/Lab01_PART2_NUSP.git
+cd Lab01_PART2_NUSP
 ```
 
 ### 2. Configure o `.env`
