@@ -7,3 +7,4 @@ data/gx/uncommitted/
 __pycache__/
 *.pyc
 .DS_Store
+lastfm_dbt/profiles.yml

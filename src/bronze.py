@@ -20,19 +20,19 @@ BASE_URL = 'https://ws.audioscrobbler.com/2.0/'
 # Usuários do grupo
 USERNAMES = {
     'Tais'            : 'taizzzx' # Segunda usuária menos ativa
-    ,'Isa'              : 'isacomelli_'
-    ,'Mari'            : 'bluesandrugs'
-    ,'Nico'            : 'nicolacioo'
-    ,'Ruds'            : 'henryhudson20'
-    ,'Sarinha'         : 'sarasicsu'
-    ,'Joao'            : 'jopefroes'
-    ,'Gustavo'         : 'e_o_pivas'
-    ,'Lucas I'         : 'lucasntss'
     ,'Dora'            : 'doraaraujo_' # Usuária menos ativa
-    ,'Sarah'           : 'aquariaty'
-    ,'Brasao'          : 'Brasaum'
-    ,'Lucas N'         : 'lucasraikou'
-    ,'Davi'            : 'davizooca'
+    #,'Isa'              : 'isacomelli_'
+    #,'Mari'            : 'bluesandrugs'
+    #,'Nico'            : 'nicolacioo'
+    #,'Ruds'            : 'henryhudson20'
+    #,'Sarinha'         : 'sarasicsu'
+    #,'Joao'            : 'jopefroes'
+    #,'Gustavo'         : 'e_o_pivas'
+    #,'Lucas I'         : 'lucasntss'
+    #,'Sarah'           : 'aquariaty'
+    #,'Brasao'          : 'Brasaum'
+    #,'Lucas N'         : 'lucasraikou'
+    #,'Davi'            : 'davizooca'
 }
 
 # Coleta desde o início do Last.fm

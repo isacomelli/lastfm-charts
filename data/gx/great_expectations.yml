@@ -87,11 +87,11 @@ fluent_datasources:
     assets:
       bronze_csv:
         type: dataframe
-        id: 73c0c2ff-efee-4c88-ad56-8a1e09b5312e
+        id: 72e1869d-15ae-4c13-9e6d-fbe2e759f52e
         batch_metadata: {}
         batch_definitions:
           bronze_batch:
-            id: 2aef3152-bb3e-499c-be17-d0008d16e6fc
+            id: 66456c9e-02a0-4cfa-89c1-7df2a962f421
             partitioner:
 analytics_enabled:
 data_context_id: b919f908-ee21-4914-9208-0cd6e4a27529

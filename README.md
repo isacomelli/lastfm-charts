@@ -23,10 +23,10 @@ Funcionava, mas era frágil. Tudo rodava localmente em uma única máquina, sem 
 | Resiliência | | Checkpoint por usuário, retoma de onde parou |
 | Dependências | `pylast`, `openpyxl` desatualizados | Stack moderna: `pandas 2.x`, `sqlalchemy 2.x`, `pyarrow` |
 | Credenciais | Armazenadas no script | Variáveis de ambiente via `.env` |
-| Modelagem | | Star Schema no PostgreSQL |
+| Modelagem Gold | | dbt com Star Schema, macro MD5, testes e documentação |
 | Documentação | | README, dicionário de dados, relatório de qualidade automático |
 | Portabilidade | Máquina da autora | Docker (3 containers orquestrados) |
-| Qualidade de dados | | Great Expectations com 9 expectations + Data Docs |
+| Qualidade de dados | | Great Expectations com 13 expectations + Data Docs + dbt |
 | Visualização | Rankings em Excel | Dashboard interativo no Grafana |
 | Tipagem de datas | `Day` e `Time` como strings brutas | 10 colunas de tempo extraídas corretamente |
 | Tratamento de erros | | Retry automático para erros 5xx da API |
@@ -42,6 +42,9 @@ Este projeto pode aparentar uma complexidade acima do esperado para um trabalho 
 
 **Sobre o volume de dados:**
 A API do Last.fm limita a coleta a **200 scrobbles por requisição**. Para atingir o requisito de 1 milhão de linhas, foi necessário coletar o histórico completo de cada usuário, paginando requisição por requisição com um intervalo de 0.1s entre cada chamada para respeitar o rate limit da API. O processo completo levou **algumas horas** de execução contínua, com um sistema de checkpoint implementado para retomar a coleta em caso de interrupção.
+
+**Sobre a camada Gold:**
+No Lab01, a Gold era implementada via `gold.py` com pandas + SQLAlchemy. Neste laboratório, esse script foi substituído por um projeto dbt completo. O `gold.py` foi mantido no repositório para referência histórica e como fallback, mas **não é mais executado no pipeline principal**.
 
 
 ---
@@ -61,25 +64,26 @@ Last.fm API
        ▼
 ┌─────────────┐
 │  VALIDATE   │  Great Expectations valida o bronze.csv
-│  data/gx/   │  9 expectations + Data Docs (HTML)
+│  data/gx/   │  13 expectations + Data Docs (HTML)
 └──────┬──────┘
        │
        ▼
 ┌─────────────┐
 │   SILVER    │  Limpeza e padronização
-│data/silver/ │  Parquet + relatório de qualidade (.md)
+│data/silver/ │  Parquet + relatório de qualidade (.md) + carga no PostgreSQL (schema silver)
 └──────┬──────┘
        │
        ▼
 ┌─────────────┐
-│    GOLD     │  Star Schema no PostgreSQL
-│  PostgreSQL │  5 dimensões + tabela fato + métricas de negócio
+│    GOLD     │  dbt Star Schema no PostgreSQL (schema public)
+│  lastfm_dbt │  staging view + 5 dimensões + tabela fato
+│             │  macro MD5 + testes genéricos + teste singular
 └──────┬──────┘
        │
        ▼
 ┌─────────────┐
 │   GRAFANA   │  Dashboard interativo
-│ localhost:  │  5 painéis com filtros de período e usuário
+│ localhost:  │  6 painéis com filtros de período e usuário
 │    3001     │
 └─────────────┘
 ```
@@ -94,25 +98,46 @@ Last.fm API
 lastfm-charts/
 ├── data/
 │   ├── bronze/
-│   │   ├── bronze.csv                  # CSV consolidado
-│   │   ├── {usuario}_bronze.json       # JSONs por usuário
-│   │   └── checkpoint.json             # Checkpoint para retomada em caso de erro
+│   │   ├── bronze.csv                         # CSV consolidado
+│   │   ├── {usuario}_bronze.json              # JSONs por usuário
+│   │   └── checkpoint.json                    # Checkpoint para retomada em caso de erro
 │   ├── silver/
-│   │   ├── silver.parquet              # Dado limpo
-│   │   ├── silver_report.md            # Relatório de qualidade automático
-│   │   └── graphs/                     # Gráficos gerados pela Silver
+│   │   ├── silver.parquet                     # Dado limpo
+│   │   ├── silver_report.md                   # Relatório de qualidade automático
+│   │   └── graphs/                            # Gráficos gerados pela Silver
 │   └── gx/
 │       └── uncommitted/
-│           └── data_docs/              # Relatório HTML do Great Expectations (não versionado)
+│           └── data_docs/                     # Relatório HTML do Great Expectations (não versionado)
 ├── docs/
-│   └── images/                         # Prints e imagens do README
+│   └── images/                                # Prints e imagens do README
+├── lastfm_dbt/
+│   ├── macros/
+│   │   └── gerar_chave_surrogate.sql          # macro MD5 customizada
+│   ├── models/
+│   │   ├── stg_scrobbles.sql                  # view com casting e filtros
+│   │   ├── staging/
+│   │   │   ├── sources.yml
+│   │   │   ├── staging.yml
+│   │   └── marts/
+│   │       ├── marts.yml
+│   │       ├── dim_album.sql
+│   │       ├── dim_artista.sql
+│   │       ├── dim_faixa.sql
+│   │       ├── dim_tempo.sql
+│   │       ├── dim_usuario.sql
+│   │       └── fact_scrobbles.sql
+│   ├── tests/
+│   │   └── assert_sem_scrobbles_futuros.sql   # singular
+│   ├── dbt_project.yml
+│   ├── profiles.yml                           # Credenciais dbt (não versionado)
+│   └── profiles.yml.example
 ├── src/
-│   ├── bronze.py                       # Camada Bronze
-│   ├── bronze_validate.py              # Validação com Great Expectations
-│   ├── silver.py                       # Camada Silver
-│   └── gold.py                         # Camada Gold
-├── .dockerignore                       # Exclui arquivos desnecessários da imagem Docker (dados, .venv, docs)
-├── .env                                # Credenciais (não versionado)
+│   ├── bronze.py                              # Camada Bronze
+│   ├── bronze_validate.py                     # Validação com Great Expectations
+│   ├── silver.py                              # Camada Silver
+│   └── gold.py                                # Mantido como referência histórica
+├── .dockerignore                              # Exclui arquivos desnecessários da imagem Docker
+├── .env                                       # Credenciais (não versionado)
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -132,7 +157,7 @@ O projeto sobe 3 containers orquestrados via `docker-compose.yml`:
 | Container | Imagem | Descrição | Porta |
 |---|---|---|---|
 | `lastfm_postgres` | `postgres:15` | Banco de dados relacional | `5432` |
-| `lastfm_app` | imagem customizada | Pipeline Python (Bronze → Gold) | |
+| `lastfm_app` | imagem customizada | Pipeline Python (Bronze → Silver) + dbt (Gold) | |
 | `lastfm_grafana` | `grafana/grafana:latest` | Dashboard BI | `3001` |
 
 Os containers `app` e `grafana` se comunicam com o `postgres` via rede interna Docker (`lastfm_postgres` como hostname), sem expor credenciais.
@@ -183,8 +208,8 @@ docker compose down -v     # para, remove containers E volumes (apaga dados do b
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/isacomelli/Lab01_PART2_NUSP.git
-cd Lab01_PART2_NUSP
+git clone https://github.com/isacomelli/Lab02_NUSP.git
+cd Lab02_NUSP
 ```
 
 ### 2. Configure o `.env`
@@ -206,7 +231,29 @@ GRAFANA_USER=admin
 GRAFANA_PASSWORD=sua_senha
 ```
 
-### 3. Instale as dependências
+### 3. Configure o `profiles.yml`
+
+```bash
+# edite o profiles.yml com suas credenciais
+lastfm_dbt/profiles.yml.example lastfm_dbt/profiles.yml
+```
+
+```profiles.yml
+lastfm_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      dbname: lastfm_charts
+      user: root
+      password: sua_senha
+      schema: public
+      threads: 4
+```
+
+### 4. Instale as dependências
 ```bash
 python -m venv .venv
 .venv\Scripts\activate        # Windows
@@ -216,23 +263,33 @@ pip install .
 
 > As dependências estão declaradas em `pyproject.toml`.
 
-### 4. Suba os containers
+### 5. Suba os containers Docker
 
 ```bash
 docker compose up -d --build
 ```
 
-### 5. Execute o pipeline em ordem
+### 6. Execute o pipeline em ordem
 
 ```bash
 # Bronze roda local (coleta da API, não depende do banco)
 python src/bronze.py
 
-# Validação, Silver e Gold rodam dentro do container
+# Entrar no container para o restante
 docker exec -it lastfm_app bash
+
+# Validação Bronze e rodar Silver 
 python src/bronze_validate.py
 python src/silver.py
-python src/gold.py
+
+# Rodar Gold via dbt
+cd lastfm_dbt
+dbt run --full-refresh
+dbt test
+dbt docs generate
+
+# Verificar online resultados do dbt
+dbt docs serve
 ```
 
 > A Bronze salva um checkpoint em `data/bronze/checkpoint.json`. Se a execução for interrompida, rode novamente, ela retoma de onde parou.
@@ -306,16 +363,16 @@ Abra o arquivo no browser para visualizar o relatório completo de validação.
 
 ### Etapa Silver
 
-A camada Silver consome os dados da Bronze, aplica transformações e persiste os dados em formato Parquet.
+A camada Silver consome os dados da Bronze, aplica transformações, persiste os dados em formato Parquet e no PostgreSQL (schema `silver`).
 Além disso, gera automaticamente um relatório de qualidade com estatísticas descritivas e visualizações.
 
 ![Rodando a aplicação: Etapa Silver](docs/images/docker_exec_silver.png)
 
 [![Clique aqui para visualizar o Relatório Silver](docs/images/silver_report_exemplo.md)](docs/images/silver_report_exemplo.md)
 
-### Etapa Gold
+### Etapa Gold Antiga
 
-A Gold lê o Parquet da Silver, cria o Star Schema no PostgreSQL, carrega todas as dimensões, a tabela fato e as métricas de negócio.
+Lê o Parquet da Silver, cria o Star Schema no PostgreSQL, carrega todas as dimensões, a tabela fato e as métricas de negócio.
 
 ![Schema, dimensões e tabelas criados](docs/images/docker_exec_gold.png)
 
@@ -343,6 +400,29 @@ As 5 queries implementadas em `gold.py` respondem às seguintes perguntas:
 
 ![Top 10 faixas do grupo](docs/images/gold_metricas_5.png)
 
+### Etapa Gold Nova
+
+É implementada com dbt. O projeto lê a `silver.scrobbles` via source, aplica transformações na staging e cria o Star Schema nos marts.
+
+#### Macro `gerar_chave_surrogate`
+
+Macro customizada que gera chaves surrogate via MD5, aceitando uma ou mais colunas:
+
+```sql
+{{ gerar_chave_surrogate('coluna_a') }}
+{{ gerar_chave_surrogate('coluna_a', 'coluna_b') }}
+```
+
+#### Testes implementados
+
+**Testes genéricos** (definidos nos YAMLs): `unique` e `not_null` em todas as PKs, `not_null` e `relationships` (integridade referencial) nas FKs da `fact_scrobbles` e nas dimensões.
+
+**Teste singular** (`assert_sem_scrobbles_futuros.sql`): garante que nenhum scrobble tenha `id_tempo` no futuro. Se a query retornar linhas, o teste falha.
+
+![Documentação automática do dbt](docs/images/dbt_homepage.png)
+
+![Lineage do projeto dbt](docs/images/dbt_lineage.png)
+
 ### PostgreSQL
 
 Os dados do PostgreSQL podem ser visualizados através do DBeaver:
@@ -366,7 +446,7 @@ O Grafana está disponível em `http://localhost:3001` após subir os containers
 | 3 | Top 10 Artistas | Bar chart horizontal | Artistas mais ouvidos no período |
 | 4 | Top 10 Faixas | Table | Faixas mais ouvidas no período |
 | 5 | Scrobbles por Hora do Dia | Bar chart vertical | Distribuição por hora (fuso BRT) |
-| 6 | Top 5 Álbuns | Table | Álbuns mais ouvidos no período |
+| 6 | Top 10 Álbuns | Table | Álbuns mais ouvidos no período |
 
 Todos os painéis respondem a dois filtros no topo do dashboard:
 - **Time Range**: período de tempo (últimos 7 dias, último mês, intervalo customizado, etc.)
@@ -408,7 +488,7 @@ Campos brutos retornados pela API do Last.fm, sem alteração.
 | `image` | array | URLs das imagens do álbum |
 | `streamable` | string | Flag de streamable da API |
 
-### Silver (`data/silver/silver.parquet`)
+### Silver (`data/silver/silver.parquet` + `silver.scrobbles`)
 Dado limpo, padronizado e enriquecido.
 
 | Coluna | Tipo | Descrição |
@@ -431,37 +511,37 @@ Dado limpo, padronizado e enriquecido.
 | `quarter` | int | Trimestre (1–4) |
 | `semester` | int | Semestre (1–2) |
 
-### Gold (PostgreSQL)
+### Gold (PostgreSQL - gerado pelo dbt)
 
-**`dim_usuario`**
+**`dim_usuario`** - usuários do grupo
 | Coluna | Tipo | Descrição |
 |---|---|---|
-| `id_usuario` | serial PK | Identificador único |
+| `id_usuario` | varchar (MD5) PK | Chave surrogate |
 | `username` | varchar | Nome de exibição do usuário |
 
-**`dim_artista`**
+**`dim_artista`** - artistas encontrados nos scrobbles
 | Coluna | Tipo | Descrição |
 |---|---|---|
-| `id_artista` | serial PK | Identificador único |
+| `id_artista` | varchar (MD5) PK | Chave surrogate |
 | `artist_name` | varchar | Nome do artista |
 
-**`dim_album`**
+**`dim_album`** - álbuns (chave natural: `album_name + id_artista`)
 | Coluna | Tipo | Descrição |
 |---|---|---|
-| `id_album` | serial PK | Identificador único |
+| `id_album` | varchar (MD5) PK | Chave surrogate |
 | `album_name` | varchar | Nome do álbum |
-| `id_artista` | int FK | Referência ao artista |
+| `id_artista` | varchar (MD5) FK | Referência ao artista |
 
-**`dim_faixa`**
+**`dim_faixa`** - faixas musicais (chave natural: `track_name + id_artista`)
 | Coluna | Tipo | Descrição |
 |---|---|---|
-| `id_faixa` | serial PK | Identificador único |
+| `id_faixa` | varchar (MD5) PK | Chave surrogate |
 | `track_name` | varchar | Nome da faixa |
 | `title` | varchar | `track_name - artist_name` |
-| `id_artista` | int FK | Referência ao artista |
-| `id_album` | int FK | Referência ao álbum |
+| `id_artista` | varchar FK | Referência ao artista |
+| `id_album` | varchar FK | Referência ao álbum |
 
-**`dim_tempo`**
+**`dim_tempo`** - dimensão de tempo com granularidade por hora
 | Coluna | Tipo | Descrição |
 |---|---|---|
 | `id_tempo` | bigint PK | Timestamp Unix |
@@ -477,14 +557,14 @@ Dado limpo, padronizado e enriquecido.
 | `trimestre` | smallint | Trimestre |
 | `semestre` | smallint | Semestre |
 
-**`fact_scrobbles`**
+**`fact_scrobbles`** - tabela fato, granularidade: 1 linha por scrobble
 | Coluna | Tipo | Descrição |
 |---|---|---|
-| `id_scrobble` | serial PK | Identificador único |
-| `id_usuario` | int FK | Referência ao usuário |
-| `id_faixa` | int FK | Referência à faixa |
-| `id_artista` | int FK | Referência ao artista |
-| `id_album` | int FK | Referência ao álbum |
+| `id_scrobble` | varchar (MD5) PK | Chave surrogate |
+| `id_usuario` | varchar FK | Referência ao usuário |
+| `id_faixa` | varchar FK | Referência à faixa |
+| `id_artista` | varchar FK | Referência ao artista |
+| `id_album` | varchar FK | Referência ao álbum |
 | `id_tempo` | bigint FK | Referência ao timestamp |
 | `scrobbles` | smallint | Quantidade (sempre 1 por evento) |
 
@@ -499,11 +579,12 @@ O relatório completo é gerado automaticamente em `data/silver/silver_report.md
 | Problema | Coluna | Impacto | Tratamento |
 |---|---|---|---|
 | Faixas sem timestamp | `date.uts` | Não podem ser posicionadas no tempo | Removidas |
-| Nome de álbum ausente | `album_name` | ~8% dos scrobbles sem álbum | Preenchido com `"Unknown"` |
+| Nome de álbum ausente | `album_name` | ~0.8% dos scrobbles sem álbum | Preenchido com `"Unknown"` no dbt (`COALESCE`) |
 | Faixas `nowplaying` sem data | `@attr.nowplaying` | Retornadas pela API sem timestamp | Filtradas na Bronze |
 | Nomes de colunas inconsistentes | múltiplas | Dificulta joins | Padronizados para `snake_case` |
-| Duplicatas por retry | `timestamp_unix` + `username` | Contagem inflada | Removidas com `drop_duplicates` |
-| Username nulo | `username` | Scrobbles sem usuário associado | 876 registros (~0.06%). Corrigido na Bronze garantindo `_display_name` em todos os tracks existentes |
+| Duplicatas por retry | `timestamp_unix + username` | Contagem inflada | Removidas na Silver + `ROW_NUMBER()` na `fact_scrobbles` |
+| Mesma faixa com álbuns diferentes | `track_name + album_name` | Chave duplicada na `dim_faixa` | `MIN(album_name)` garante unicidade |
+| Scrobbles com timestamp no futuro | `id_tempo` | Dado inválido na fato | Detectado pelo teste singular do dbt (`assert_sem_scrobbles_futuros`) |
 
 
 ---
@@ -517,11 +598,12 @@ O relatório completo é gerado automaticamente em `data/silver/silver_report.md
 | pandas 2.x | Manipulação de dados |
 | requests | Coleta via API REST |
 | pyarrow | Leitura/escrita Parquet |
-| SQLAlchemy 2.x | ORM e conexão com PostgreSQL |
+| SQLAlchemy 2.x | Conexão com PostgreSQL |
 | psycopg2 | Driver PostgreSQL |
 | matplotlib | Geração de gráficos |
 | python-dotenv | Gerenciamento de credenciais |
 | Great Expectations 1.x | Validação e qualidade de dados |
+| dbt | Modelagem e transformação da camada Gold |
 | PostgreSQL 15 | Banco de dados relacional |
 | Docker | Containerização |
 | Grafana | Dashboard BI |
@@ -534,6 +616,7 @@ O relatório completo é gerado automaticamente em `data/silver/silver_report.md
 ## Observações
 
 - Os dados coletados pertencem aos usuários e são usados exclusivamente para fins educacionais
-- Nunca versione o arquivo `.env`, e os arquivos em `data/`
+- Nunca versione o arquivo `.env`, `profiles.yml` e os arquivos em `data/`
 - Os arquivos em `data/` não são versionados por questão de tamanho. Rode `bronze.py` para coletar os dados (o checkpoint garante que a coleta pode ser retomada em caso de interrupção)
 - Os horários no Grafana são exibidos no fuso `America/Sao_Paulo` (BRT, UTC-3)
+- O `gold.py` foi mantido no repositório como referência histórica do Lab01, mas não faz parte do pipeline ativo

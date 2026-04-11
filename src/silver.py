@@ -21,6 +21,10 @@ import matplotlib
 matplotlib.use('Agg')  # sem interface gráfica para ser compatível com Docker
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # %%
 BRONZE_PATH = os.path.join('data', 'bronze', 'bronze.csv')
@@ -134,6 +138,35 @@ print(f'  Shape final: {df.shape}')
 print(f'  Colunas: {list(df.columns)}')
 
 # %% [markdown]
+# #### Carga da Silver no PostgreSQL
+
+# %% 
+DB_URL = (
+    f'postgresql+psycopg2://'
+    f"{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}"
+    f"@{os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', '5432')}"
+    f"/{os.getenv('POSTGRES_DB')}"
+)
+
+engine = create_engine(DB_URL)
+
+# DROP CASCADE para não quebrar views dependentes (como gold.stg_scrobbles)
+with engine.connect() as conn:
+    conn.execute(text('DROP TABLE IF EXISTS silver.scrobbles CASCADE'))
+    conn.commit()
+
+df.to_sql(
+    'scrobbles'
+    ,engine
+    ,schema='silver'
+    ,if_exists='append'
+    ,index=False
+    ,method='multi'
+    ,chunksize=10000
+)
+print(f'{len(df):,} linhas carregadas em silver.scrobbles')
+
+# %% [markdown]
 # #### Gráficos
 
 # %%
@@ -160,6 +193,7 @@ ax.set_title('Scrobbles por Usuário', fontsize=14, pad=12)
 ax.set_xlabel('Usuário')
 ax.set_ylabel('Scrobbles')
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
+ax.set_xticks(range(len(counts)))
 ax.set_xticklabels(counts.index, rotation=45, ha='right')
 plt.tight_layout()
 p = os.path.join(GRAPHS_DIR, 'g1_scrobbles_por_usuario.png')

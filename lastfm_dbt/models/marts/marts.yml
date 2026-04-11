@@ -1,0 +1,73 @@
+version: 2
+
+models:
+
+  - name: dim_usuario
+    description: "Usuários do grupo."
+    columns:
+      - name: id_usuario
+        tests: [unique, not_null]
+      - name: username
+        tests: [unique, not_null]
+
+  - name: dim_artista
+    description: "Artistas encontrados nos scrobbles."
+    columns:
+      - name: id_artista
+        tests: [unique, not_null]
+      - name: artist_name
+        tests: [unique, not_null]
+
+  - name: dim_album
+    description: "Álbuns. Chave natural: (album_name, id_artista)."
+    columns:
+      - name: id_album
+        tests: [unique, not_null]
+      - name: id_artista
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_artista')
+              field: id_artista
+
+  - name: dim_faixa
+    description: "Faixas musicais. Chave natural: (track_name, id_artista)."
+    columns:
+      - name: id_faixa
+        tests: [unique, not_null]
+      - name: id_artista
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_artista')
+              field: id_artista
+
+  - name: dim_tempo
+    description: "Dimensão de tempo com granularidade por hora."
+    columns:
+      - name: id_tempo
+        tests: [unique, not_null]
+
+  - name: fact_scrobbles
+    description: "Tabela fato. Cada linha é um scrobble."
+    columns:
+      - name: id_scrobble
+        tests: [unique, not_null]
+      - name: id_usuario
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_usuario')
+              field: id_usuario
+      - name: id_artista
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_artista')
+              field: id_artista
+      - name: id_tempo
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_tempo')
+              field: id_tempo
