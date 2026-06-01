@@ -37,9 +37,6 @@ Funcionava, mas era frágil. Tudo rodava localmente em uma única máquina, sem 
 
 ## Observações Acadêmicas
 
-**Sobre a complexidade do projeto:**
-Este projeto pode aparentar uma complexidade acima do esperado para um trabalho introdutório. Isso se deve ao fato de que a ideia central, coletar e rankear scrobbles de um grupo de amigos via Last.fm, já existia em um projeto pessoal anterior. O que foi feito aqui foi uma **modernização e reestruturação** dessa base, aplicando os conceitos do laboratório (Arquitetura Medallion, PostgreSQL, documentação) sobre algo que já tinha lógica de negócio estabelecida. Além disso, a ideia é reaproveitar o projeto como portfólio.
-
 **Sobre o volume de dados:**
 A API do Last.fm limita a coleta a **200 scrobbles por requisição**. Para atingir o requisito de 1 milhão de linhas, foi necessário coletar o histórico completo de cada usuário, paginando requisição por requisição com um intervalo de 0.1s entre cada chamada para respeitar o rate limit da API. O processo completo levou **algumas horas** de execução contínua, com um sistema de checkpoint implementado para retomar a coleta em caso de interrupção.
 
@@ -208,8 +205,8 @@ docker compose down -v     # para, remove containers E volumes (apaga dados do b
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/isacomelli/Lab02_NUSP.git
-cd Lab02_NUSP
+git clone https://github.com/isacomelli/lastfm-charts.git
+cd lastfm-charts
 ```
 
 ### 2. Configure o `.env`
