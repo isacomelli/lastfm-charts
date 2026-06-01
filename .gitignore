@@ -1,6 +1,10 @@
 .env
-data/
+.venv/
+venv/
+data/bronze/
+data/silver/
+data/gx/uncommitted/
 __pycache__/
 *.pyc
 .DS_Store
-.venv/
+lastfm_dbt/profiles.yml

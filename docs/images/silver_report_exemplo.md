@@ -1,10 +1,10 @@
 # Silver Layer - Relatório de Qualidade de Dados
 
-**Data de geração:** 2026-03-24 20:40
+**Data de geração:** 2026-03-29 14:04
 
-**Total de registros:** 1,503,546
+**Total de registros:** 1,508,168
 
-**Período coberto:** 2010-07-06 18:22:52+00:00 → 2026-03-20 21:49:49+00:00
+**Período coberto:** 2010-07-06 18:22:52+00:00 → 2026-03-29 16:38:39+00:00
 
 ## Tipos de Colunas
 
@@ -35,16 +35,15 @@
 
 | Coluna | Nulos |
 |---|---|
-| username | 871 (0.1%) |
-| album_name | 12,249 (0.8%) |
+| album_name | 12,250 (0.8%) |
 
 ## Estatísticas Descritivas
 
 |       |         hour |     weekday |        month |           year |
 |:------|-------------:|------------:|-------------:|---------------:|
-| count |  1.50355e+06 | 1.50355e+06 |  1.50355e+06 |    1.50355e+06 |
-| mean  | 13.6912      | 2.84969     |  6.58035     | 2021.4         |
-| std   |  6.93583     | 1.95842     |  3.44295     |    3.58089     |
+| count |  1.50817e+06 | 1.50817e+06 |  1.50817e+06 |    1.50817e+06 |
+| mean  | 13.6925      | 2.85084     |  6.56938     | 2021.42        |
+| std   |  6.935       | 1.958       |  3.44336     |    3.58442     |
 | min   |  0           | 0           |  1           | 2010           |
 | 25%   | 10           | 1           |  4           | 2020           |
 | 50%   | 15           | 3           |  7           | 2022           |
@@ -53,14 +52,14 @@
 
 ## Gráficos
 
-![g1_scrobbles_por_usuario.png](g1_scrobbles_por_usuario_exemplo.png)
+![g1_scrobbles_por_usuario.png](graphs/g1_scrobbles_por_usuario_exemplo.png)
 
-![g2_top10_artistas.png](g2_top10_artistas_exemplo.png)
+![g2_top10_artistas.png](graphs/g2_top10_artistas_exemplo.png)
 
-![g3_hora_do_dia.png](g3_hora_do_dia_exemplo.png)
+![g3_hora_do_dia.png](graphs/g3_hora_do_dia_exemplo.png)
 
-![g4_dia_da_semana.png](g4_dia_da_semana_exemplo.png)
+![g4_dia_da_semana.png](graphs/g4_dia_da_semana_exemplo.png)
 
-![g5_evolucao_mensal.png](g5_evolucao_mensal_exemplo.png)
+![g5_evolucao_mensal.png](graphs/g5_evolucao_mensal_exemplo.png)
 
-![g6_outliers_por_usuario.png](g6_outliers_por_usuario_exemplo.png)
+![g6_outliers_por_usuario.png](graphs/g6_outliers_por_usuario_exemplo.png)

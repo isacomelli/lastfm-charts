@@ -1,0 +1,12 @@
+lastfm_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      dbname: lastfm_charts
+      user: root
+      password: 
+      schema: public
+      threads: 4

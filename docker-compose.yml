@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15
     container_name: lastfm_postgres
+    shm_size: '256mb'
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -21,8 +22,22 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: postgres  # sobrescreve o localhost do .env
+      POSTGRES_HOST: postgres
     command: tail -f /dev/null
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: lastfm_grafana
+    depends_on:
+      - postgres
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
 
 volumes:
   pgdata:
+  grafana_data:

@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_scrobbles
+    description: "View de staging sobre silver.scrobbles com casting de tipos e filtro de nulos."
+    columns:
+      - name: timestamp_unix
+        tests:
+          - not_null
+      - name: username
+        tests:
+          - not_null
+      - name: track_name
+        tests:
+          - not_null
+      - name: artist_name
+        tests:
+          - not_null
